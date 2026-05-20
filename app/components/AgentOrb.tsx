@@ -10,6 +10,7 @@ export type Agent = {
   role: string;
   status: AgentStatus;
   tagline: string;
+  vapiAssistantId?: string;
 };
 
 type Props = {

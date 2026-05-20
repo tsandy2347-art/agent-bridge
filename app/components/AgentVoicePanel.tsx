@@ -6,9 +6,6 @@ import type Vapi from "@vapi-ai/web";
 const VAPI_PUBLIC_KEY =
   process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY ||
   "9e3bca0c-9a6a-4ed2-a1b7-ae440dc9f04a";
-const VAPI_ASSISTANT_ID =
-  process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID ||
-  "2e1428ba-6624-4be6-a15d-cceca8d14c0d";
 
 type Line = { role: "user" | "assistant"; text: string };
 
@@ -20,7 +17,20 @@ type Status =
   | "ending"
   | "error";
 
-export function AdamPanel({ onClose }: { onClose: () => void }) {
+export type VoiceAgentDetails = {
+  name: string;
+  role: string;
+  initial: string;
+  vapiAssistantId: string;
+};
+
+export function AgentVoicePanel({
+  agent,
+  onClose,
+}: {
+  agent: VoiceAgentDetails;
+  onClose: () => void;
+}) {
   const [status, setStatus] = useState<Status>("idle");
   const [lines, setLines] = useState<Line[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +82,7 @@ export function AdamPanel({ onClose }: { onClose: () => void }) {
         console.error("Vapi error:", err);
       });
 
-      await vapi.start(VAPI_ASSISTANT_ID);
+      await vapi.start(agent.vapiAssistantId);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
@@ -101,7 +111,7 @@ export function AdamPanel({ onClose }: { onClose: () => void }) {
       case "listening":
         return "Listening — speak now";
       case "speaking":
-        return "Adam is speaking…";
+        return `${agent.name} is speaking…`;
       case "ending":
         return "Ending call";
       case "error":
@@ -131,7 +141,7 @@ export function AdamPanel({ onClose }: { onClose: () => void }) {
 
         <div className="p-8 flex flex-col items-center gap-6">
           <div className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)]">
-            Adam · Personal Assistant
+            {agent.name} · {agent.role}
           </div>
 
           <div className="relative w-40 h-40 flex items-center justify-center">
@@ -165,7 +175,7 @@ export function AdamPanel({ onClose }: { onClose: () => void }) {
                 className="text-6xl font-bold select-none"
                 style={{ color: "#B5D4F4" }}
               >
-                A
+                {agent.initial}
               </span>
             </div>
           </div>
@@ -192,7 +202,7 @@ export function AdamPanel({ onClose }: { onClose: () => void }) {
                 onClick={start}
                 className="px-8 py-3 border border-[var(--blue)] text-[var(--blue)] font-[family-name:var(--font-jetbrains)] text-xs uppercase tracking-[0.15em] hover:bg-[var(--blue-dim)] hover:shadow-[0_0_20px_var(--blue-glow)] transition-all"
               >
-                ● Talk to Adam
+                ● Talk to {agent.name}
               </button>
             ) : (
               <button
@@ -229,7 +239,7 @@ export function AdamPanel({ onClose }: { onClose: () => void }) {
                           : "text-[var(--blue)]"
                       }`}
                     >
-                      {l.role === "user" ? "You:" : "Adam:"}
+                      {l.role === "user" ? "You:" : `${agent.name}:`}
                     </span>
                     <span className="text-[var(--text-dim)]">{l.text}</span>
                   </div>

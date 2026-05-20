@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AgentOrb, type Agent } from "./AgentOrb";
-import { AdamPanel } from "./AdamPanel";
+import { AgentVoicePanel } from "./AgentVoicePanel";
 
 const AGENTS: Agent[] = [
   {
@@ -11,6 +11,7 @@ const AGENTS: Agent[] = [
     role: "Personal Assistant",
     status: "ready",
     tagline: "Your chief of staff. Briefings, schedule, life.",
+    vapiAssistantId: "2e1428ba-6624-4be6-a15d-cceca8d14c0d",
   },
   {
     id: "mark",
@@ -23,8 +24,9 @@ const AGENTS: Agent[] = [
     id: "claire",
     name: "Claire",
     role: "JBC Operations",
-    status: "coming-soon",
+    status: "ready",
     tagline: "Care partners, compliance, payroll, tickets.",
+    vapiAssistantId: "eabb183c-e495-4ec4-95e7-59844253d596",
   },
   {
     id: "tom",
@@ -36,8 +38,10 @@ const AGENTS: Agent[] = [
 ];
 
 export function AgentGrid() {
-  const [active, setActive] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  const active = activeId ? AGENTS.find((a) => a.id === activeId) ?? null : null;
 
   const showSoon = (name: string) => {
     setToast(`${name} is on the build list — coming next session.`);
@@ -55,17 +59,30 @@ export function AgentGrid() {
             <AgentOrb
               key={a.id}
               agent={a}
-              active={active === a.id}
+              active={activeId === a.id}
               onClick={() => {
-                if (a.id === "adam") setActive("adam");
-                else showSoon(a.name);
+                if (a.status === "ready" && a.vapiAssistantId) {
+                  setActiveId(a.id);
+                } else {
+                  showSoon(a.name);
+                }
               }}
             />
           ))}
         </div>
       </div>
 
-      {active === "adam" ? <AdamPanel onClose={() => setActive(null)} /> : null}
+      {active && active.vapiAssistantId ? (
+        <AgentVoicePanel
+          agent={{
+            name: active.name,
+            role: active.role,
+            initial: active.name[0] ?? "?",
+            vapiAssistantId: active.vapiAssistantId,
+          }}
+          onClose={() => setActiveId(null)}
+        />
+      ) : null}
 
       {toast ? (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded font-[family-name:var(--font-jetbrains)] text-xs text-[var(--text-dim)]">
