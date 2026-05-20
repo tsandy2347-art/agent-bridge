@@ -2,6 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import type Vapi from "@vapi-ai/web";
+import { ScreenPopPanel, type ScreenPopView } from "./ScreenPopPanel";
+
+// Screen-pop view catalog — keyed mapping for the test buttons (and, next
+// session, for voice-triggered tool_calls from Claire/Mark/etc.).
+const SCREEN_POP_VIEWS: Record<string, ScreenPopView[]> = {
+  claire: [
+    { title: "Exceptions Queue", url: "https://jbc-compliance-production.up.railway.app/tickets/exceptions" },
+    { title: "AlayaCare Pipeline", url: "https://jbc-compliance-production.up.railway.app/tickets/alayacare" },
+    { title: "Staff Performance", url: "https://jbc-compliance-production.up.railway.app/admin/staff-performance" },
+    { title: "All Tickets", url: "https://jbc-compliance-production.up.railway.app/tickets" },
+  ],
+  adam: [],
+};
 
 // Public key that allows BOTH Adam and Claire (and future fleet members).
 // Old key 9e3bca0c-... was scoped to Adam only and 403'd on Claire.
@@ -36,8 +49,11 @@ export function AgentVoicePanel({
   const [status, setStatus] = useState<Status>("idle");
   const [lines, setLines] = useState<Line[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [screenPop, setScreenPop] = useState<ScreenPopView | null>(null);
   const vapiRef = useRef<Vapi | null>(null);
   const linesEndRef = useRef<HTMLDivElement | null>(null);
+
+  const availableViews = SCREEN_POP_VIEWS[agent.name.toLowerCase()] ?? [];
 
   useEffect(() => {
     linesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -130,14 +146,26 @@ export function AgentVoicePanel({
   const live = status === "listening" || status === "speaking";
 
   return (
+    <>
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: "rgba(6,9,17,0.85)", backdropFilter: "blur(8px)" }}
+      className={`fixed inset-0 z-50 flex items-center ${
+        screenPop ? "justify-start pl-8" : "justify-center"
+      }`}
+      style={{
+        background: screenPop ? "transparent" : "rgba(6,9,17,0.85)",
+        backdropFilter: screenPop ? "none" : "blur(8px)",
+        pointerEvents: "none",
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget && !live) onClose();
       }}
     >
-      <div className="relative w-full max-w-2xl mx-4 bg-[var(--surface)] border border-[var(--border)] rounded">
+      <div
+        className={`relative bg-[var(--surface)] border border-[var(--border)] rounded ${
+          screenPop ? "w-[28%] max-w-sm" : "w-full max-w-2xl mx-4"
+        }`}
+        style={{ pointerEvents: "auto" }}
+      >
         <button
           type="button"
           onClick={onClose}
@@ -256,8 +284,32 @@ export function AgentVoicePanel({
               <div ref={linesEndRef} />
             </div>
           </div>
+
+          {availableViews.length > 0 ? (
+            <div className="w-full mt-2 border border-[var(--border)] rounded bg-[rgba(0,0,0,0.3)] p-3">
+              <div className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)] mb-2">
+                Screen pop · manual (voice trigger next session)
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {availableViews.map((v) => (
+                  <button
+                    key={v.url}
+                    type="button"
+                    onClick={() => setScreenPop(v)}
+                    className="px-3 py-1.5 border border-[var(--border)] text-[var(--text-dim)] hover:border-[var(--blue)] hover:text-[var(--blue)] font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-[0.1em] transition-all"
+                  >
+                    {v.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
+    {screenPop ? (
+      <ScreenPopPanel view={screenPop} onClose={() => setScreenPop(null)} />
+    ) : null}
+    </>
   );
 }
