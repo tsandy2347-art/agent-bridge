@@ -83,10 +83,11 @@ export function AgentOrb({ agent, onClick, active = false }: Props) {
         >
           {Array.from({ length: 12 }, (_, i) => {
             const angle = (i * 30 * Math.PI) / 180;
-            const x1 = 50 + Math.cos(angle) * 47;
-            const y1 = 50 + Math.sin(angle) * 47;
-            const x2 = 50 + Math.cos(angle) * 50;
-            const y2 = 50 + Math.sin(angle) * 50;
+            // toFixed(3) avoids SSR/CSR float-precision hydration mismatch
+            const x1 = (50 + Math.cos(angle) * 47).toFixed(3);
+            const y1 = (50 + Math.sin(angle) * 47).toFixed(3);
+            const x2 = (50 + Math.cos(angle) * 50).toFixed(3);
+            const y2 = (50 + Math.sin(angle) * 50).toFixed(3);
             return (
               <line
                 key={i}
