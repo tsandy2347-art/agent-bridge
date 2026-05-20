@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import type Vapi from "@vapi-ai/web";
 
+// Public key that allows BOTH Adam and Claire (and future fleet members).
+// Old key 9e3bca0c-... was scoped to Adam only and 403'd on Claire.
 const VAPI_PUBLIC_KEY =
   process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY ||
-  "9e3bca0c-9a6a-4ed2-a1b7-ae440dc9f04a";
+  "f2f527a9-55ba-49b3-9aed-43bd5aa390bd";
 
 type Line = { role: "user" | "assistant"; text: string };
 
@@ -69,17 +71,23 @@ export function AgentVoicePanel({
           ]);
         }
       });
-      vapi.on("error", (err: Error | { message?: string } | unknown) => {
+      vapi.on("error", (err: unknown) => {
+        // Vapi error payloads vary; dig for whatever's there
+        const errObj = err as Record<string, unknown> | null;
+        const nested = errObj && typeof errObj === "object" && "error" in errObj
+          ? (errObj.error as Record<string, unknown>)
+          : null;
         const message =
-          err instanceof Error
-            ? err.message
-            : typeof err === "object" && err && "message" in err
-              ? String((err as { message?: string }).message)
-              : "unknown error";
+          (errObj?.errorMsg as string | undefined)
+          ?? (nested?.msg as string | undefined)
+          ?? (nested?.errorMsg as string | undefined)
+          ?? (errObj?.message as string | undefined)
+          ?? (err instanceof Error ? err.message : null)
+          ?? "unknown error";
         setError(message);
         setStatus("error");
         // eslint-disable-next-line no-console
-        console.error("Vapi error:", err);
+        console.error("Vapi error:", JSON.stringify(err, null, 2), err);
       });
 
       await vapi.start(agent.vapiAssistantId);
