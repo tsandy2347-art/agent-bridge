@@ -50,10 +50,56 @@ export function AgentVoicePanel({
   const [lines, setLines] = useState<Line[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [screenPop, setScreenPop] = useState<ScreenPopView | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const vapiRef = useRef<Vapi | null>(null);
   const linesEndRef = useRef<HTMLDivElement | null>(null);
+  // Live mirror of `lines` so the call-end closure sees the latest transcript.
+  const linesRef = useRef<Line[]>([]);
+  // Guard against double-fire of extract-ideas
+  const extractedRef = useRef(false);
 
   const availableViews = SCREEN_POP_VIEWS[agent.name.toLowerCase()] ?? [];
+
+  // Keep the ref in sync with state
+  useEffect(() => {
+    linesRef.current = lines;
+  }, [lines]);
+
+  // Fire extract-ideas on call-end if we captured anything
+  async function extractIdeasFromTranscript() {
+    if (extractedRef.current) return;
+    extractedRef.current = true;
+    const transcript = linesRef.current;
+    if (transcript.length < 2) return; // Skip trivial calls
+    try {
+      const resp = await fetch("/api/extract-ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agent: agent.name.toLowerCase(),
+          transcript,
+        }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (resp.ok) {
+        const count = data.count ?? 0;
+        if (count > 0) {
+          setToast(`${count} idea${count === 1 ? "" : "s"} captured to inbox`);
+        } else {
+          setToast("Call ended — no new ideas to capture");
+        }
+      } else if (resp.status === 501) {
+        // Agent doesn't have extract-ideas wired yet (Adam) — silent
+      } else {
+        setToast(`Idea capture failed: ${data.error || resp.statusText}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setToast(`Idea capture error: ${msg}`);
+    } finally {
+      window.setTimeout(() => setToast(null), 4000);
+    }
+  }
 
   useEffect(() => {
     linesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -67,10 +113,15 @@ export function AgentVoicePanel({
       const vapi = new VapiCtor(VAPI_PUBLIC_KEY);
       vapiRef.current = vapi;
 
-      vapi.on("call-start", () => setStatus("listening"));
+      vapi.on("call-start", () => {
+        setStatus("listening");
+        extractedRef.current = false; // reset for this call
+      });
       vapi.on("call-end", () => {
         setStatus("idle");
         vapiRef.current = null;
+        // Fire-and-forget — we don't block the UI on extraction
+        extractIdeasFromTranscript();
       });
       vapi.on("speech-start", () => setStatus("speaking"));
       vapi.on("speech-end", () => setStatus("listening"));
@@ -309,6 +360,12 @@ export function AgentVoicePanel({
     </div>
     {screenPop ? (
       <ScreenPopPanel view={screenPop} onClose={() => setScreenPop(null)} />
+    ) : null}
+    {toast ? (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 bg-[var(--surface)] border border-[var(--blue)] rounded shadow-[0_0_20px_var(--blue-glow)] font-[family-name:var(--font-jetbrains)] text-xs text-[var(--text)] flex items-center gap-2">
+        <span className="w-1.5 h-1.5 bg-[var(--blue)] rounded-full" />
+        {toast}
+      </div>
     ) : null}
     </>
   );
