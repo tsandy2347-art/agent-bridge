@@ -4,22 +4,9 @@ import { useState } from "react";
 import { AgentOrb, type Agent } from "./AgentOrb";
 import { AgentVoicePanel } from "./AgentVoicePanel";
 
+// The JBC Team. Adam (personal) lives on his own page — adam-agent.up.railway.app/widget/
+// or the standalone localhost build — and is intentionally NOT mixed in here.
 const AGENTS: Agent[] = [
-  {
-    id: "adam",
-    name: "Adam",
-    role: "Personal Assistant",
-    status: "ready",
-    tagline: "Your chief of staff. Briefings, schedule, life.",
-    vapiAssistantId: "2e1428ba-6624-4be6-a15d-cceca8d14c0d",
-  },
-  {
-    id: "mark",
-    name: "Mark",
-    role: "The Money Man",
-    status: "coming-soon",
-    tagline: "Xero, P&L, cashflow, the CFO brain.",
-  },
   {
     id: "claire",
     name: "Claire",
@@ -27,6 +14,13 @@ const AGENTS: Agent[] = [
     status: "ready",
     tagline: "Care partners, compliance, payroll, tickets.",
     vapiAssistantId: "eabb183c-e495-4ec4-95e7-59844253d596",
+  },
+  {
+    id: "mark",
+    name: "Mark",
+    role: "The Money Man",
+    status: "coming-soon",
+    tagline: "Xero, P&L, cashflow, the CFO brain.",
   },
   {
     id: "tom",
@@ -52,9 +46,9 @@ export function AgentGrid() {
     <>
       <div className="relative z-10 max-w-[1800px] mx-auto px-6 py-10">
         <div className="font-[family-name:var(--font-jetbrains)] text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4">
-          Agent fleet
+          JBC Team
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {AGENTS.map((a) => (
             <AgentOrb
               key={a.id}
